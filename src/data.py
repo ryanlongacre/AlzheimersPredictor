@@ -1,9 +1,14 @@
 import pandas as pd
+import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.cluster import KMeans
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 pd.set_option('display.max_columns', None)
 data_file = pd.read_csv("../data/alzheimers_disease_data.csv")
@@ -63,3 +68,29 @@ plt.show()
 kmeans = KMeans(n_clusters=3, random_state=42)
 
 data_file['RiskGroup'] = kmeans.fit_predict(data_file.drop(columns=['Diagnosis']))
+
+#splits your inputs and outputs into two groups
+#20% testing data and 80% training data
+x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.2, random_state=42)
+param_grid = {
+    'n_estimators': [100,200,300,400,500],
+    'max_depth': [None, 10, 20, 30, 40, 50],
+    'min_samples_split': [2,5,10],
+    'max_features': ['auto', 'sqrt', 'log2']
+}
+model = RandomForestRegressor(n_estimators = 300, random_state=42)
+
+grid_search = GridSearchCV(estimator=model, param_grid=param_grid, cv=5, n_jobs=-1, verbose=2)
+
+
+grid_search.fit(x_train, y_train)
+
+best_model = grid_search.best_estimator_
+joblib.dump(best_model, '../models/best_model.joblib')
+y_pred = best_model.predict(x_test)
+
+mae = mean_absolute_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
+
+print(f"Mean Abslute Error: {mae}")
+print(f"R2 Score: {r2}")
